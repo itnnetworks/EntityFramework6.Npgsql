@@ -37,6 +37,7 @@ using System.Linq;
 using JetBrains.Annotations;
 using System.Text.RegularExpressions;
 using System.Text;
+using System.Collections;
 
 namespace Npgsql.SqlGenerators
 {
@@ -1468,7 +1469,31 @@ namespace Npgsql.SqlGenerators
             for (var i = 0; i < expression.List.Count; i++)
                 elements[i] = (ConstantExpression)expression.List[i].Accept(this);
 
-            return OperatorExpression.Build(Operator.In, _useNewPrecedences, item, new ConstantListExpression(elements));
+            var valueList = new ArrayList();
+            valueList.AddRange(elements.Select(x => x.Value).ToList());
+
+            var dbType = NpgsqlTypes.NpgsqlDbType.Unknown;
+            if (expression.List.Count > 0)
+            {
+                dbType = NpgsqlProviderManifest.GetNpgsqlDbType(((PrimitiveType)expression.List[0].ResultType.EdmType).PrimitiveTypeKind);
+            }
+
+            if (dbType != NpgsqlTypes.NpgsqlDbType.Unknown)
+            {
+                var parameter = new NpgsqlParameter
+                {
+                    ParameterName = "p_" + ParameterCount++,
+                    NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Array | dbType,
+                    Value = valueList.ToArray(),
+                };
+                Command.Parameters.Add(parameter);
+
+                return OperatorExpression.Build(Operator.In, _useNewPrecedences, item, new ParenthesizedLiteralExpression("@" + parameter.ParameterName));
+            }
+            else
+            {
+                return OperatorExpression.Build(Operator.In, _useNewPrecedences, item, new ConstantValuesListExpression(elements));
+            }
         }
 
         public override VisitedExpression Visit([NotNull] DbPropertyExpression expression)
