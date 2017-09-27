@@ -51,6 +51,7 @@ namespace Npgsql.SqlGenerators
         protected HashSet<InputExpression> CurrentExpressions = new HashSet<InputExpression>();
         protected uint AliasCounter;
         protected uint ParameterCount;
+        protected Dictionary<int, List<Tuple<string, List<object>>>> HashToParamValueTupleList = new Dictionary<int, List<Tuple<string, List<object>>>>();
 
         internal Version Version
         {
@@ -1469,8 +1470,9 @@ namespace Npgsql.SqlGenerators
             for (var i = 0; i < expression.List.Count; i++)
                 elements[i] = (ConstantExpression)expression.List[i].Accept(this);
 
-            var valueList = new ArrayList();
+            var valueList = new List<object>();
             valueList.AddRange(elements.Select(x => x.Value).ToList());
+            valueList.Sort();
 
             var dbType = NpgsqlTypes.NpgsqlDbType.Unknown;
             if (expression.List.Count > 0)
@@ -1480,13 +1482,52 @@ namespace Npgsql.SqlGenerators
 
             if (dbType != NpgsqlTypes.NpgsqlDbType.Unknown)
             {
-                var parameter = new NpgsqlParameter
+                var key = valueList.Aggregate(0, (accum, x) => accum ^ x.GetHashCode());
+                NpgsqlParameter parameter = null;
+
+                if (HashToParamValueTupleList.ContainsKey(key))
+                {
+                    var paramValueTupleList = HashToParamValueTupleList[key];
+                    foreach(var paramValueTuple in paramValueTupleList)
+                    {
+                        var parameterName = paramValueTuple.Item1;
+                        var cachedList = paramValueTuple.Item2;
+                        if (valueList.Count > 0 && valueList.Count == cachedList.Count && valueList[0].GetType() == cachedList[0].GetType())
+                        {
+                            bool match = true;
+                            for (int i=0; i < valueList.Count; i++)
+                            {
+                                if (!valueList[i].Equals(cachedList[i]))
+                                {
+                                    match = false;
+                                    break;
+                                }
+                            }
+                            if (match)
+                            {
+                                return OperatorExpression.Build(Operator.In, _useNewPrecedences, item, new ParenthesizedLiteralExpression("@" + parameterName));
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                parameter = new NpgsqlParameter
                 {
                     ParameterName = "p_" + ParameterCount++,
                     NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Array | dbType,
                     Value = valueList.ToArray(),
                 };
                 Command.Parameters.Add(parameter);
+
+                if (!HashToParamValueTupleList.ContainsKey(key))
+                {
+                    HashToParamValueTupleList.Add(key, new List<Tuple<string, List<object>>>());
+                }
+                HashToParamValueTupleList[key].Add(Tuple.Create(parameter.ParameterName, valueList));
 
                 return OperatorExpression.Build(Operator.In, _useNewPrecedences, item, new ParenthesizedLiteralExpression("@" + parameter.ParameterName));
             }
