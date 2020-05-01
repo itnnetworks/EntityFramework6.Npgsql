@@ -6,10 +6,10 @@ using System.Globalization;
 using System.Data.Entity.Core.Common.CommandTrees;
 using System.Data.Entity.Core.Metadata.Edm;
 using System.Linq;
-using JetBrains.Annotations;
 using System.Text.RegularExpressions;
 using System.Text;
 using System.Collections;
+using JetBrains.Annotations;
 
 namespace Npgsql.SqlGenerators
 {

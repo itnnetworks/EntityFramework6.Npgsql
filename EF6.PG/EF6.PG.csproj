@@ -7,7 +7,7 @@
     <PackageTags>npgsql postgresql postgres data database entity framework ef orm</PackageTags>
     <VersionPrefix>6.4.1</VersionPrefix>
     <LangVersion>latest</LangVersion>
-    <TargetFrameworks>net45;net461;netstandard21</TargetFrameworks>
+    <TargetFrameworks>net451;net461;netstandard21</TargetFrameworks>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <NoWarn>CS1591</NoWarn>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -28,10 +28,10 @@
     <EmbeddedResource Include="Resources/*" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="content/App.config.install.xdt" Pack="true" PackagePath="content/net45" />
-    <None Include="content/net45/App.config.transform" Pack="true" PackagePath="content/net45" />
-    <None Include="content/Web.config.install.xdt" Pack="true" PackagePath="content/net45" />
-    <None Include="content/net45/Web.config.transform" Pack="true" PackagePath="content/net45" />
+    <None Include="content/App.config.install.xdt" Pack="true" PackagePath="content/net451" />
+    <None Include="content/net451/App.config.transform" Pack="true" PackagePath="content/net451" />
+    <None Include="content/Web.config.install.xdt" Pack="true" PackagePath="content/net451" />
+    <None Include="content/net451/Web.config.transform" Pack="true" PackagePath="content/net451" />
 
     <None Include="content/App.config.install.xdt" Pack="true" PackagePath="content/net461" />
     <None Include="content/net461/App.config.transform" Pack="true" PackagePath="content/net461" />
@@ -50,7 +50,11 @@
     <Reference Include="System.ComponentModel.DataAnnotations" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Npgsql" />
     <PackageReference Include="EntityFramework" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Npgsql">
+      <HintPath>..\packages\Npgsql.3.2.5\lib\net451\Npgsql.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

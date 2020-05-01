@@ -56,7 +56,7 @@ namespace Npgsql
             case PrimitiveTypeKind.DateTime:
                 return NpgsqlDbType.Timestamp;
             case PrimitiveTypeKind.DateTimeOffset:
-                return NpgsqlDbType.TimestampTz;
+                return NpgsqlDbType.TimestampTZ;
             case PrimitiveTypeKind.Decimal:
                 return NpgsqlDbType.Numeric;
             case PrimitiveTypeKind.Double:
