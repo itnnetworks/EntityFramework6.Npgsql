@@ -72,6 +72,35 @@ namespace Npgsql.SqlGenerators
         }
     }
 
+    internal class ParenthesizedLiteralExpression : VisitedExpression
+    {
+        readonly string _literal;
+
+        public ParenthesizedLiteralExpression(string literal)
+        {
+            _literal = literal;
+        }
+
+        public new ParenthesizedLiteralExpression Append(VisitedExpression expresion)
+        {
+            base.Append(expresion);
+            return this;
+        }
+
+        public new void Append(string literal)
+        {
+            base.Append(literal);
+        }
+
+        internal override void WriteSql(StringBuilder sqlText)
+        {
+            sqlText.Append("(");
+            sqlText.Append(_literal);
+            sqlText.Append(")");
+            base.WriteSql(sqlText);
+        }
+    }
+
     internal class CommaSeparatedExpression : VisitedExpression
     {
         public readonly List<VisitedExpression> Arguments = new List<VisitedExpression>();
@@ -102,6 +131,8 @@ namespace Npgsql.SqlGenerators
             _primitiveType = ((PrimitiveType)edmType.EdmType).PrimitiveTypeKind;
             _value = value;
         }
+
+        public object Value => _value;
 
         internal override void WriteSql(StringBuilder sqlText)
         {
@@ -799,8 +830,8 @@ namespace Npgsql.SqlGenerators
         public static readonly Operator BitwiseXor = new Operator("#", 10, 8);
         public static readonly Operator BitwiseNot = new Operator("~", 10, 8, UnaryTypes.Prefix, false);
         public static readonly Operator Concat = new Operator("||", 10, 8);
-        public static readonly Operator In = new Operator("IN", 9, 6);
-        public static readonly Operator NotIn = new Operator("NOT IN", 3, 9, 6);
+        public static readonly Operator In = new Operator("= ANY", 9, 6);
+        public static readonly Operator NotIn = new Operator("!= ALL", 3, 9, 6);
         public static readonly Operator Like = new Operator("LIKE", 6, 6);
         public static readonly Operator NotLike = new Operator("NOT LIKE", 3, 6, 6);
         public static readonly Operator LessThan = new Operator("<", 5, 5);
@@ -984,6 +1015,33 @@ namespace Npgsql.SqlGenerators
                 if (!first)
                     sqlText.Append(",");
                 constant.WriteSql(sqlText);
+                first = false;
+            }
+            sqlText.Append(")");
+            base.WriteSql(sqlText);
+        }
+    }
+
+    internal class ConstantValuesListExpression : VisitedExpression
+    {
+        readonly IEnumerable<ConstantExpression> _list;
+
+        public ConstantValuesListExpression(IEnumerable<ConstantExpression> list)
+        {
+            _list = list;
+        }
+
+        internal override void WriteSql(StringBuilder sqlText)
+        {
+            sqlText.Append("(VALUES ");
+            var first = true;
+            foreach (var constant in _list)
+            {
+                if (!first)
+                    sqlText.Append(",");
+                sqlText.Append("(");
+                constant.WriteSql(sqlText);
+                sqlText.Append(")");
                 first = false;
             }
             sqlText.Append(")");
